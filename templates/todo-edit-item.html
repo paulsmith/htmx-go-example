@@ -1,0 +1,22 @@
+<tr id="todo-{{.Id}}">
+	<td class="px-4 py-2" colspan="3">
+		<form 
+			hx-put="/todos/{{.Id}}/_text/"
+			hx-target="closest tr"
+			hx-swap="outerHTML"
+			class="flex items-end gap-2">
+			<input type="text" name="text" placeholder="What to do &hellip;" required 
+			   	   	   value="{{.Text}}"
+			   	   	   class="flex-grow px-2 py-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm sm:text-sm border border-gray-300 rounded-md">
+			<input type="submit" value="Save"
+				class="px-4 py-2 border border-transparent shadow-sm font-medium rounded-md text-white bg-indigo-700 text-sm">
+			<button
+				hx-get="/todos/{{.Id}}/"
+				hx-target="closest tr"
+				hx-swap="outerHTML"
+				class="px-4 py-2 border shadow-sm font-medium rounded-md bg-white text-sm">
+				Cancel
+			</button>
+		</form>
+	</td>
+</tr>

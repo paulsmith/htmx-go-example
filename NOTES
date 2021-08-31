@@ -1,0 +1,23 @@
+todo
+
+- [x] set up template loading
+- [x] basic tailwind styling
+- [ ] todo app
+  - [x] create new
+  - [x] mark done
+  - [x] delete old
+  - [x] edit old
+  - [ ] select all
+  - [x] count of todos - how to handle the update (oob swap)
+  - [x] style done ones
+  - [x] unify the row-level editing
+  - [x] filters
+- [ ] embed assets embed.FS
+- [ ] i18n/l10n
+- [ ] SQLite
+- [ ] Litestream
+- [ ] container
+- [ ] fly.io
+- [ ] review this https://www.gobeyond.dev/crud/
+- [ ] add tests
+- [ ] 

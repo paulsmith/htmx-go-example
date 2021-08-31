@@ -1,0 +1,31 @@
+<tr id="todo-{{.Todo.Id}}">
+	<td class="px-4 py-2">
+		<span class="font-medium text-gray-900 {{if .Todo.Done}} text-opacity-50 line-through{{end}}" hx-target="closest tr" hx-swap="outerHTML">
+			<span{{if not .Todo.Done}} hx-get="/todos/{{.Todo.Id}}/edit/"{{end}} >
+				{{.Todo.Text}}
+			</span>
+		</span>
+	</td>
+	<td class="px-4 py-2">
+		<input
+			type="checkbox"
+			value="done"
+			name="done"
+			hx-put="/todos/{{.Todo.Id}}/_done/"
+			hx-target="closest tr"
+			hx-swap="outerHTML"
+			{{if .Todo.Done}}checked{{end}}
+			class="h-4 w-4 border-gray-300 rounded">
+	</td>
+	<td class="px-4 py-2">
+		<button
+			hx-delete="/todos/{{.Todo.Id}}/"
+			hx-confirm="Are you sure?"
+			hx-target="closest tr"
+			hx-swap="outerHTML swap:1s"
+			class="px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-700 hover:bg-red-800">Delete</button>
+	</td>
+</tr>
+{{if .UpdateNumber}}
+{{template "todo-list-number.html" .}}
+{{end}}
