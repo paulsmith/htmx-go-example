@@ -1,7 +1,7 @@
-			<td
-				id="todo-number-items"
-				colspan="3"
-				{{if .UpdateNumber}}hx-swap-oob="outerHTML:#todo-number-items"{{end}}
-				class="px-4 py-2 text-sm font-medium text-gray-500">
-				<p>Showing {{.FilteredTodosNumber}} todo item{{if ne .FilteredTodosNumber 1}}s{{end}}.</p>
-			</td>
+<td
+	id="todo-number-items"
+	colspan="3"
+	{{if .UpdateNumber}}hx-swap-oob="outerHTML:#todo-number-items"{{end}}
+	class="px-4 py-2 text-sm font-medium text-gray-500">
+	<p>{{T .Request "Showing %d todo item(s)." .FilteredTodosNumber}}</p>
+</td>

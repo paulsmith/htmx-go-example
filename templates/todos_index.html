@@ -1,20 +1,24 @@
 {{template "base.html" .}}
 
-{{define "title"}}Todos{{end}}
+{{define "title"}}{{T .Request "Todos"}}{{end}}
 
 {{define "content"}}
-<h2 class="text-xl py-2">Todo list</h2>
+<h2 class="text-xl py-2">{{T .Request "Todo list"}}</h2>
 
-<table id="todo-list" class="mt-2 min-w-full divide-y divide-gray-300">
+<table
+	id="todo-list"
+	aria-label="{{T .Request "list of todos"}}"
+	class="mt-2 min-w-full divide-y divide-gray-300">
 	<thead class="bg-gray-50">
 		<tr>
 			<th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-				Todo
+				{{T .Request "Todo"}}
 			</th>
 			<th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-				Done?
+				{{T .Request "Done?"}}
 			</th>
 			<th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				{{T .Request "Actions"}}
 			</th>
 		</tr>
 	</thead>
@@ -30,16 +34,18 @@
 			<td
 				colspan="3"
 				class="px-4 py-2 text-sm font-medium text-gray-500 uppercase flex gap-2">
-				<p>Show:</p>
+				<p>{{T .Request "Show:"}}</p>
 				<ul
 					hx-boost="true"
 					class="flex divide-x">
+					{{$Request := .Request}}
 					{{range .Filters}}
 						<li class="px-4">
 							<a
 								href="./{{if .Value}}?filter={{.Value}}{{end}}"
+								aria-label="{{T $Request "Filter todos:"}} {{T $Request .Label}}"
 								class="{{if .Active}}font-bold {{end}}hover:text-gray-700">
-								{{.Label}}
+								{{T $Request .Label}}
 							</a>
 						</li>
 					{{end}}
@@ -50,7 +56,7 @@
 </table>
 
 <style>
-.htmx-swapping {
+#todo-list tbody tr.htmx-swapping {
 	opacity: 0;
 	transition: opacity 1s ease-out;
 }
@@ -60,13 +66,27 @@
 	hx-post="/todos/"
 	hx-target="#todo-list tbody"
 	hx-swap="beforeend"
+	aria-label="{{T .Request "new todo form"}}"
 	class="flex items-end gap-2 border-t mt-4 py-4">
-	<fieldset class="flex-grow">
-		<label for="new-todo" class="block text-sm font-medium text-gray-700">New todo</label>
-		<input type="text" id="new-todo" name="new-todo" placeholder="What to do &hellip;" required autofocus
-			   class="mt-1 px-4 py-4 focus:ring-indigo-500 focus:border-indigo-500 w-full shadow-sm border border-gray-300 rounded-md">
-	</fieldset>
-	<input type="submit" value="Add"
+	<div class="flex-grow" aria-label="{{T .Request "new todo entry"}}">
+		<label
+			for="new-todo"
+			id="new-todo-label"
+			class="block text-sm font-medium text-gray-700">
+			{{T .Request "New todo"}}
+		</label>
+		<input
+			type="text"
+			id="new-todo"
+			name="new-todo"
+			tabindex="0"
+			aria-describedby="new-todo-label"
+			placeholder="{{T .Request "What to do …"}}"
+			required
+			autofocus
+			class="mt-1 px-4 py-4 focus:ring-indigo-500 focus:border-indigo-500 w-full shadow-sm border border-gray-300 rounded-md">
+	</div>
+	<input type="submit" value="{{T .Request "Add"}}"
 		class="px-4 py-4 border border-transparent shadow-sm font-medium rounded-md text-white bg-indigo-700">
 </form>
 <script>

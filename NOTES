@@ -7,13 +7,16 @@ todo
   - [x] mark done
   - [x] delete old
   - [x] edit old
+  - [ ] add CSRF
   - [ ] select all
   - [x] count of todos - how to handle the update (oob swap)
   - [x] style done ones
   - [x] unify the row-level editing
   - [x] filters
 - [ ] embed assets embed.FS
-- [ ] i18n/l10n
+- [x] i18n/l10n
+	- [x] install gotext
+	- [x] add to tools.go for go.mod
 - [ ] SQLite
 - [ ] Litestream
 - [ ] container

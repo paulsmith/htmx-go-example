@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="{{activeLang .Request}}">
 <head>
   <meta charset="UTF-8" />
   <title>{{block "title" .}}htmx + Go{{end}}</title>
@@ -7,28 +7,54 @@
   <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="container mx-auto bg-gray-200">
-	<nav class="max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
+	<nav
+		role="nav"
+		aria-label="{{T .Request "site-wide navigation"}}"
+		class="max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
 		<div class="flex items-center space-x-4">
 			<h1 class="text-2xl font-bold"><a href="/">htmx + Go</a></h1>
-			<ul class="flex items-baseline">
+			<ul class="flex items-baseline" aria-label="{{T .Request "navigation links"}}">
 				<li>
-					<a href="/todos/" class="text-gray-400 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Todos</a>
+					<a
+						href="/todos/"
+						class="text-gray-800 bg-gray-100 hover:bg-white px-3 py-2 rounded-md text-sm font-medium">
+						{{T .Request "Todos"}}
+					</a>
 				</li>
 			</ul>
 		</div>
 	</nav>
-	<header class="max-w-7xl bg-white text-gray-800 shadow">
+	<header
+		role="banner"
+		aria-label="{{T .Request "main header"}}"
+		class="max-w-7xl bg-white text-gray-800 shadow">
 		<div class="py-6 px-4 sm:px-6 lg:px-8">
 			<h1 class="text-3xl font-bold">{{template "title" .}}</h1>
 		</div>
 	</header>
- 	<main class="max-w-7xl my-6 shadow-sm py-6 px-4 sm:px-6 lg:px-8 bg-white text-gray-900">
+ 	<main
+		role="main"
+		aria-label="{{T .Request "main page content"}}"
+		class="max-w-7xl my-6 shadow-sm py-6 px-4 sm:px-6 lg:px-8 bg-white text-gray-900">
 		{{block "content" .}}{{end}}
 	</main>
-	<footer class="max-w-7xl my-6 shadow-sm py-6 px-4 sm:px-6 lg:px-8 text-gray-700 bg-white text-sm">
+	<footer
+		role="contentinfo"
+		aria-label="{{T .Request "footer"}}"
+		class="max-w-7xl my-6 shadow-sm py-6 px-4 sm:px-6 lg:px-8 text-gray-700 bg-white text-sm">
 		{{block "footer" . -}}
-			Copyright &copy; 2021.
+			{{T .Request "Copyright"}} &copy; 2021.
 		{{- end}}
+		<label>
+			{{T .Request "Select language"}}
+			<select id="language-switch" name="lang" hx-get="/lang/">
+				{{with $activeLang := activeLang .Request }}
+				{{range languages }}
+				<option value="{{.Tag}}"{{if eq $activeLang.String .Tag}} selected{{end}}>{{.WorldEmoji}} {{.Label}}</option>
+				{{end}}
+				{{end}}
+			</select>
+		<label>
 	</footer>
 	<script src="https://unpkg.com/htmx.org@1.5.0"></script>
 </body>

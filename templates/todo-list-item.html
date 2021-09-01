@@ -1,12 +1,13 @@
 <tr id="todo-{{.Todo.Id}}">
 	<td class="px-4 py-2">
 		<span class="font-medium text-gray-900 {{if .Todo.Done}} text-opacity-50 line-through{{end}}" hx-target="closest tr" hx-swap="outerHTML">
-			<span{{if not .Todo.Done}} hx-get="/todos/{{.Todo.Id}}/edit/"{{end}} >
+			<span{{if not .Todo.Done}} hx-get="/todos/{{.Todo.Id}}/edit/" tabindex="0" onkeydown="if (event.keyCode === 13) event.target.click()"{{end}}>
 				{{.Todo.Text}}
 			</span>
 		</span>
 	</td>
 	<td class="px-4 py-2">
+		<label class="text-xs text-gray-500">
 		<input
 			type="checkbox"
 			value="done"
@@ -16,14 +17,22 @@
 			hx-swap="outerHTML"
 			{{if .Todo.Done}}checked{{end}}
 			class="h-4 w-4 border-gray-300 rounded">
+			{{if not .Todo.Done}}
+				{{T .Request "Mark done"}}
+			{{else}}
+				{{T .Request "Mark undone"}}
+			{{end}}
+		</label>
 	</td>
 	<td class="px-4 py-2">
 		<button
 			hx-delete="/todos/{{.Todo.Id}}/"
-			hx-confirm="Are you sure?"
+			hx-confirm="{{T .Request "Are you sure?"}}"
 			hx-target="closest tr"
 			hx-swap="outerHTML swap:1s"
-			class="px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-700 hover:bg-red-800">Delete</button>
+			class="px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-700 hover:bg-red-800">
+			{{T .Request "Delete"}}
+		</button>
 	</td>
 </tr>
 {{if .UpdateNumber}}

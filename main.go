@@ -14,6 +14,9 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 func logger(h http.Handler) http.Handler {
@@ -150,6 +153,23 @@ type server struct {
 }
 
 func newServer(templatesDirPath string) *server {
+	s := &server{}
+
+	funcMap := template.FuncMap{
+		"activeLang": func(r *http.Request) language.Tag {
+			return r.Context().Value(languageTagKey).(language.Tag)
+		},
+
+		"languages": func() []Language {
+			return supportedLanguages
+		},
+
+		"T": func(r *http.Request, key string, a ...interface{}) string {
+			p := r.Context().Value(messagePrinterKey).(*message.Printer)
+			return p.Sprintf(key, a...)
+		},
+	}
+
 	makePath := func(filename string) string {
 		return filepath.Join(templatesDirPath, filename)
 	}
@@ -161,7 +181,8 @@ func newServer(templatesDirPath string) *server {
 	}
 
 	tmpls := make(map[string]*template.Template)
-	base := template.Must(template.ParseFiles(makePath("base.html")))
+	base := template.New("base.html").Funcs(funcMap)
+	base = template.Must(base.ParseFiles(makePath("base.html")))
 	for _, page := range dependentPages {
 		t := template.Must(base.ParseFiles(makePath(page)))
 		tmpls[page] = t
@@ -180,7 +201,6 @@ func newServer(templatesDirPath string) *server {
 		tmpls[page] = t
 	}
 
-	s := &server{}
 	s.templates = tmpls
 	s.todoService = &inMemTodoService{}
 
@@ -214,7 +234,11 @@ func handlePage(templates map[string]*template.Template, name string, w http.Res
 }
 
 func (s *server) indexHandler(w http.ResponseWriter, r *http.Request) {
-	handlePage(s.templates, "index.html", w, nil)
+	handlePage(s.templates, "index.html", w, struct {
+		Request *http.Request
+	}{
+		r,
+	})
 }
 
 type paramFilter struct {
@@ -267,6 +291,7 @@ func (s *server) getFilteredTodoListItems(r *http.Request, updateNumber bool) ([
 	items := make([]todoListItem, len(todos))
 	for i, t := range todos {
 		items[i] = todoListItem{
+			Request:             r,
 			Todo:                t,
 			UpdateNumber:        updateNumber,
 			FilteredTodosNumber: len(todos),
@@ -276,6 +301,7 @@ func (s *server) getFilteredTodoListItems(r *http.Request, updateNumber bool) ([
 }
 
 type todoListItem struct {
+	Request             *http.Request
 	Todo                *todo
 	UpdateNumber        bool
 	FilteredTodosNumber int
@@ -304,6 +330,7 @@ func (s *server) todosIndexHandler(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				data := todoListItem{
+					Request:             r,
 					Todo:                &todo,
 					UpdateNumber:        true,
 					FilteredTodosNumber: len(todos),
@@ -324,12 +351,14 @@ func (s *server) todosIndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
+		Request             *http.Request
 		Todos               []todoListItem
 		UpdateNumber        bool
 		FilteredTodosNumber int
 		Filters             []paramFilter
 		Errors              []string
 	}{
+		r,
 		todos,
 		false,
 		len(todos),
@@ -355,6 +384,7 @@ func (s *server) todoHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data := todoListItem{
+			Request:      r,
 			Todo:         todo,
 			UpdateNumber: false,
 		}
@@ -373,6 +403,7 @@ func (s *server) todoHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			data := todoListItem{
+				Request:             r,
 				Todo:                nil,
 				UpdateNumber:        true,
 				FilteredTodosNumber: len(todos),
@@ -395,6 +426,7 @@ func (s *server) todoHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data := todoListItem{
+			Request:      r,
 			Todo:         todo,
 			UpdateNumber: false,
 		}
@@ -430,9 +462,41 @@ func (s *server) todoEditHandler(w http.ResponseWriter, r *http.Request) {
 	handlePage(s.templates, "todo-edit-item.html", w, todo)
 }
 
+func (s *server) languageHandler(w http.ResponseWriter, r *http.Request) {
+	if tag := r.FormValue("lang"); tag != "" {
+		var isSupported bool
+		for _, l := range supportedLanguages {
+			if l.Tag == tag {
+				isSupported = true
+				break
+			}
+		}
+		if !isSupported {
+			log.Printf("[WARN] unsupported language tag %q", tag)
+			http.NotFound(w, r)
+			return
+		}
+
+		c := http.Cookie{
+			Name:     langCookieName,
+			Value:    tag,
+			Path:     "/",
+			SameSite: http.SameSiteLaxMode,
+			HttpOnly: true,
+		}
+		http.SetCookie(w, &c)
+		w.Header().Set("HX-Refresh", "true")
+		return
+	} else {
+		http.Error(w, http.StatusText(400), 400)
+	}
+}
+
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
 		s.indexHandler(w, r)
+	} else if r.URL.Path == "/lang/" {
+		s.languageHandler(w, r)
 	} else if strings.HasPrefix(r.URL.Path, "/todos") {
 		path := strings.TrimPrefix(r.URL.Path, "/todos")
 		if path == "" {
@@ -466,7 +530,7 @@ func main() {
 		}
 	}
 
-	http.Handle("/", logger(s))
+	http.Handle("/", withMessagePrinter(logger(s)))
 
 	addr := fmt.Sprintf("%s:%d", *host, *port)
 	log.Printf("listening on %s", addr)
