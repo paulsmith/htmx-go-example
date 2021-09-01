@@ -47,14 +47,14 @@
 		{{- end}}
 		<label>
 			{{T .Request "Select language"}}
-			<select id="language-switch" name="lang" hx-get="/lang/">
+			<select name="lang" hx-get="/lang/">
 				{{with $activeLang := activeLang .Request }}
 				{{range languages }}
 				<option value="{{.Tag}}"{{if eq $activeLang.String .Tag}} selected{{end}}>{{.WorldEmoji}} {{.Label}}</option>
 				{{end}}
 				{{end}}
 			</select>
-		<label>
+		</label>
 	</footer>
 	<script src="https://unpkg.com/htmx.org@1.5.0"></script>
 </body>

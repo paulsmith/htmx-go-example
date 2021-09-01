@@ -178,6 +178,7 @@ func newServer(templatesDirPath string) *server {
 		"todo-list-number.html",
 		"todo-list-item.html",
 		"todo-edit-item.html",
+		"todo-list.html",
 	}
 
 	tmpls := make(map[string]*template.Template)
@@ -250,8 +251,8 @@ type paramFilter struct {
 func getParamFilters() []paramFilter {
 	paramFilters := []paramFilter{
 		{Label: "All", Value: "", Active: true},
-		{Label: "Done", Value: "done"},
 		{Label: "Remaining", Value: "notdone"},
+		{Label: "Done", Value: "done"},
 	}
 	return paramFilters
 }
@@ -369,6 +370,15 @@ func (s *server) todosIndexHandler(w http.ResponseWriter, r *http.Request) {
 	handlePage(s.templates, "todos_index.html", w, data)
 }
 
+func isTodoInList(todo *todo, list []todoListItem) bool {
+	for _, item := range list {
+		if todo == item.Todo {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *server) todoHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := extractTodoId(r.URL.Path)
 	if err != nil {
@@ -425,12 +435,29 @@ func (s *server) todoHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
-		data := todoListItem{
-			Request:      r,
-			Todo:         todo,
-			UpdateNumber: false,
+		todos, _, err := s.getFilteredTodoListItems(r, true)
+		if err != nil {
+			log.Printf("finding todos: %v", err)
+			http.Error(w, http.StatusText(500), 500)
+			return
 		}
-		handlePage(s.templates, "todo-list-item.html", w, data)
+		if isTodoInList(todo, todos) {
+			data := todoListItem{
+				Request:             r,
+				Todo:                todo,
+				UpdateNumber:        true,
+				FilteredTodosNumber: len(todos),
+			}
+			handlePage(s.templates, "todo-list-item.html", w, data)
+		} else {
+			data := todoListItem{
+				Request:             r,
+				Todo:                nil,
+				UpdateNumber:        true,
+				FilteredTodosNumber: len(todos),
+			}
+			handlePage(s.templates, "todo-list-number.html", w, data)
+		}
 	} else {
 		http.Error(w, http.StatusText(405), 405)
 		return

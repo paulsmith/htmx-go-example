@@ -12,7 +12,7 @@
 			type="checkbox"
 			value="done"
 			name="done"
-			hx-put="/todos/{{.Todo.Id}}/_done/"
+			hx-put="/todos/{{.Todo.Id}}/_done/?filter={{.Request.FormValue "filter"}}"
 			hx-target="closest tr"
 			hx-swap="outerHTML"
 			{{if .Todo.Done}}checked{{end}}

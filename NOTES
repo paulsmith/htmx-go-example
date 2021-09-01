@@ -7,6 +7,7 @@ todo
   - [x] mark done
   - [x] delete old
   - [x] edit old
+  - [x] fix number when marked done
   - [ ] add CSRF
   - [ ] select all
   - [x] count of todos - how to handle the update (oob swap)
@@ -23,4 +24,3 @@ todo
 - [ ] fly.io
 - [ ] review this https://www.gobeyond.dev/crud/
 - [ ] add tests
-- [ ] 
