@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"flag"
 	"fmt"
 	"html/template"
@@ -562,7 +563,7 @@ func main() {
 	host := flag.String("host", "0.0.0.0", "hostname or IP address")
 	port := flag.Int("port", 8080, "port")
 	csrfAuthKey := flag.String("csrf", "", "CSRF auth key (32 bytes)")
-	templatesDirPath := flag.String("templates", "templates", "path to templates dir")
+	templateDirPath := flag.String("template", "template", "path to template dir")
 	flag.Parse()
 
 	if *csrfAuthKey == "" {
@@ -574,7 +575,7 @@ func main() {
 		log.Fatalf("CSRF auth key (32 bytes) required, please provide -csrf option or set CSRF_AUTH_KEY env var")
 	}
 
-	s := newServer(*templatesDirPath)
+	s := newServer(*templateDirPath)
 	examples := []string{"Do some stuff", "Make other things", "Call your mom"}
 	for _, ex := range examples {
 		todo := todo{Text: ex}
