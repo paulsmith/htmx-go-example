@@ -155,10 +155,35 @@ type server struct {
 	todoService todoService
 }
 
+func preprocessTemplates(basePath string, partialPaths, pagePaths []string, funcs template.FuncMap) map[string]*template.Template {
+	templates := make(map[string]*template.Template)
+
+	filename := filepath.Base(basePath)
+	base := template.New(filename).Funcs(funcs)
+	base = template.Must(base.ParseFiles(basePath))
+
+	for _, path := range partialPaths {
+		t := template.Must(base.ParseFiles(path))
+		filename := filepath.Base(path)
+		templates[filename] = t
+	}
+
+	templates[base.Name()] = base
+
+	for _, path := range pagePaths {
+		base := template.Must(templates[base.Name()].Clone())
+		t := template.Must(base.ParseFiles(path))
+		filename := filepath.Base(path)
+		templates[filename] = t
+	}
+
+	return templates
+}
+
 func newServer(templatesDirPath string) *server {
 	s := &server{}
 
-	funcMap := template.FuncMap{
+	funcs := template.FuncMap{
 		"activeLang": func(r *http.Request) language.Tag {
 			return r.Context().Value(languageTagKey).(language.Tag)
 		},
@@ -181,35 +206,19 @@ func newServer(templatesDirPath string) *server {
 		return filepath.Join(templatesDirPath, filename)
 	}
 
-	dependentPages := []string{
-		"todo-list-number.html",
-		"todo-list-item.html",
-		"todo-edit-item.html",
-		"todo-list.html",
+	partialPaths := []string{
+		makePath("todo-list-number.html"),
+		makePath("todo-list-item.html"),
+		makePath("todo-edit-item.html"),
+		makePath("todo-list.html"),
 	}
 
-	tmpls := make(map[string]*template.Template)
-	base := template.New("base.html").Funcs(funcMap)
-	base = template.Must(base.ParseFiles(makePath("base.html")))
-	for _, page := range dependentPages {
-		t := template.Must(base.ParseFiles(makePath(page)))
-		tmpls[page] = t
+	pagePaths := []string{
+		makePath("index.html"),
+		makePath("todos_index.html"),
 	}
 
-	tmpls["base.html"] = base
-
-	pages := []string{
-		"index.html",
-		"todos_index.html",
-	}
-
-	for _, page := range pages {
-		base := template.Must(tmpls["base.html"].Clone())
-		t := template.Must(base.ParseFiles(makePath(page)))
-		tmpls[page] = t
-	}
-
-	s.templates = tmpls
+	s.templates = preprocessTemplates(makePath("base.html"), partialPaths, pagePaths, funcs)
 	s.todoService = &inMemTodoService{}
 
 	return s

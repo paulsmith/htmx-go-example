@@ -14,6 +14,7 @@ todo
   - [x] style done ones
   - [x] unify the row-level editing
   - [x] filters
+  - [ ] add user login
 - [ ] embed assets embed.FS
 - [x] i18n/l10n
 	- [x] install gotext
