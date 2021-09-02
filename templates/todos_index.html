@@ -36,7 +36,10 @@
 </form>
 <script>
 	document.addEventListener("htmx:afterRequest", () => {
-		document.querySelector("#new-todo").value = '';
+		document.querySelector("#new-todo").value = "";
+	}, false);
+	document.addEventListener("htmx:configRequest", event => {
+		event.detail.headers["X-CSRF-Token"] = "{{ csrfToken .Request }}";
 	}, false);
 </script>
 {{end}}

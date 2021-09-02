@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -17,6 +18,8 @@ import (
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+
+	"github.com/gorilla/csrf"
 )
 
 func logger(h http.Handler) http.Handler {
@@ -167,6 +170,10 @@ func newServer(templatesDirPath string) *server {
 		"T": func(r *http.Request, key string, a ...interface{}) string {
 			p := r.Context().Value(messagePrinterKey).(*message.Printer)
 			return p.Sprintf(key, a...)
+		},
+
+		"csrfToken": func(r *http.Request) string {
+			return csrf.Token(r)
 		},
 	}
 
@@ -358,6 +365,7 @@ func (s *server) todosIndexHandler(w http.ResponseWriter, r *http.Request) {
 		FilteredTodosNumber int
 		Filters             []paramFilter
 		Errors              []string
+		CSRFTemplateTag     template.HTML
 	}{
 		r,
 		todos,
@@ -365,6 +373,7 @@ func (s *server) todosIndexHandler(w http.ResponseWriter, r *http.Request) {
 		len(todos),
 		paramFilters,
 		nil,
+		csrf.TemplateField(r),
 	}
 
 	handlePage(s.templates, "todos_index.html", w, data)
@@ -545,8 +554,18 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func main() {
 	host := flag.String("host", "0.0.0.0", "hostname or IP address")
 	port := flag.Int("port", 8080, "port")
+	csrfAuthKey := flag.String("csrf", "", "CSRF auth key (32 bytes)")
 	templatesDirPath := flag.String("templates", "templates", "path to templates dir")
 	flag.Parse()
+
+	if *csrfAuthKey == "" {
+		if key := os.Getenv("CSRF_AUTH_KEY"); key != "" {
+			*csrfAuthKey = key
+		}
+	}
+	if *csrfAuthKey == "" || len(*csrfAuthKey) != 32 {
+		log.Fatalf("CSRF auth key (32 bytes) required, please provide -csrf option or set CSRF_AUTH_KEY env var")
+	}
 
 	s := newServer(*templatesDirPath)
 	examples := []string{"Do some stuff", "Make other things", "Call your mom"}
@@ -557,7 +576,18 @@ func main() {
 		}
 	}
 
-	http.Handle("/", withMessagePrinter(logger(s)))
+	_, isDev := os.LookupEnv("DEV")
+	log.Printf("\x1b[1;32mis development environment?\x1b[0m %v", isDev)
+
+	var h http.Handler
+	h = s
+	h = csrf.Protect([]byte(*csrfAuthKey),
+		csrf.Secure(!isDev),
+		csrf.Path("/"),
+	)(h)
+	h = logger(h)
+	h = withMessagePrinter(h)
+	http.Handle("/", h)
 
 	addr := fmt.Sprintf("%s:%d", *host, *port)
 	log.Printf("listening on %s", addr)

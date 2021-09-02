@@ -122,7 +122,6 @@ func withMessagePrinter(h http.Handler) http.Handler {
 		tag, _ := language.MatchStrings(matcher, lang.Value, accept)
 		log.Printf("\x1b[1;36muser language: %s\x1b[0m", tag)
 		p := message.NewPrinter(tag)
-		p.Print("Done?")
 		ctx := context.WithValue(context.Background(), messagePrinterKey, p)
 		ctx = context.WithValue(ctx, languageTagKey, tag)
 		h.ServeHTTP(w, r.WithContext(ctx))

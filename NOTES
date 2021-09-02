@@ -8,7 +8,7 @@ todo
   - [x] delete old
   - [x] edit old
   - [x] fix number when marked done
-  - [ ] add CSRF
+  - [x] add CSRF
   - [ ] select all
   - [x] count of todos - how to handle the update (oob swap)
   - [x] style done ones
