@@ -161,14 +161,13 @@ func preprocessTemplates(basePath string, partialPaths, pagePaths []string, func
 	filename := filepath.Base(basePath)
 	base := template.New(filename).Funcs(funcs)
 	base = template.Must(base.ParseFiles(basePath))
+	templates[base.Name()] = base
 
 	for _, path := range partialPaths {
 		t := template.Must(base.ParseFiles(path))
 		filename := filepath.Base(path)
 		templates[filename] = t
 	}
-
-	templates[base.Name()] = base
 
 	for _, path := range pagePaths {
 		base := template.Must(templates[base.Name()].Clone())
@@ -202,26 +201,25 @@ func newServer(templatesDirPath string) *server {
 		},
 	}
 
-	makePath := func(filename string) string {
-		return filepath.Join(templatesDirPath, filename)
-	}
-
-	partialPaths := []string{
-		makePath("todo-list-number.html"),
-		makePath("todo-list-item.html"),
-		makePath("todo-edit-item.html"),
-		makePath("todo-list.html"),
-	}
-
-	pagePaths := []string{
-		makePath("index.html"),
-		makePath("todos_index.html"),
-	}
-
-	s.templates = preprocessTemplates(makePath("base.html"), partialPaths, pagePaths, funcs)
+	s.templates = setupTemplates(templatesDirPath, funcs)
 	s.todoService = &inMemTodoService{}
 
 	return s
+}
+
+func setupTemplates(templatesDirPath string, funcs template.FuncMap) map[string]*template.Template {
+	mustGlob := func(matches []string, err error) []string {
+		if err != nil {
+			panic(err)
+		}
+		return matches
+	}
+
+	basePath := filepath.Join(templatesDirPath, "base.html")
+	partialPaths := mustGlob(filepath.Glob(filepath.Join(templatesDirPath, "partial", "*.html")))
+	pagePaths := mustGlob(filepath.Glob(filepath.Join(templatesDirPath, "page", "*.html")))
+
+	return preprocessTemplates(basePath, partialPaths, pagePaths, funcs)
 }
 
 func renderPage(templates map[string]*template.Template, name string, w http.ResponseWriter, data interface{}) error {
