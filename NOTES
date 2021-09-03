@@ -15,13 +15,14 @@ todo
   - [x] unify the row-level editing
   - [x] filters
   - [ ] add user login
-- [ ] embed assets embed.FS
+  - [ ] bug: don't clear #new-todo on filter change
+  - [ ] translate filter labels in main.go not template
+- [x] embed assets embed.FS
 - [x] i18n/l10n
 	- [x] install gotext
 	- [x] add to tools.go for go.mod
-- [ ] SQLite
-- [ ] Litestream
-- [ ] container
+- [ ] add SQLite
+- [ ] containerize
+- [ ] add Litestream
 - [ ] fly.io
-- [ ] review this https://www.gobeyond.dev/crud/
 - [ ] add tests

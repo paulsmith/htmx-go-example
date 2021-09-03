@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
-	_ "embed"
+	embed "embed"
 	"flag"
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +23,9 @@ import (
 
 	"github.com/gorilla/csrf"
 )
+
+//go:embed template
+var f embed.FS
 
 func logger(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -156,23 +160,32 @@ type server struct {
 	todoService todoService
 }
 
+func debugLog(fmt string, a ...interface{}) {
+	if _, ok := os.LookupEnv("DEBUG"); ok {
+		log.Printf("\x1b[1;32m[DEBUG]\x1b[0m "+fmt, a...)
+	}
+}
+
 func preprocessTemplates(basePath string, partialPaths, pagePaths []string, funcs template.FuncMap) map[string]*template.Template {
 	templates := make(map[string]*template.Template)
 
 	filename := filepath.Base(basePath)
 	base := template.New(filename).Funcs(funcs)
-	base = template.Must(base.ParseFiles(basePath))
+	debugLog("parsing base %s", basePath)
+	base = template.Must(base.ParseFS(f, basePath))
 	templates[base.Name()] = base
 
 	for _, path := range partialPaths {
-		t := template.Must(base.ParseFiles(path))
+		debugLog("parsing partial %s", path)
+		t := template.Must(base.ParseFS(f, path))
 		filename := filepath.Base(path)
 		templates[filename] = t
 	}
 
 	for _, path := range pagePaths {
+		debugLog("parsing page %s", path)
 		base := template.Must(templates[base.Name()].Clone())
-		t := template.Must(base.ParseFiles(path))
+		t := template.Must(base.ParseFS(f, path))
 		filename := filepath.Base(path)
 		templates[filename] = t
 	}
@@ -180,7 +193,7 @@ func preprocessTemplates(basePath string, partialPaths, pagePaths []string, func
 	return templates
 }
 
-func newServer(templatesDirPath string) *server {
+func newServer() *server {
 	s := &server{}
 
 	funcs := template.FuncMap{
@@ -202,13 +215,13 @@ func newServer(templatesDirPath string) *server {
 		},
 	}
 
-	s.templates = setupTemplates(templatesDirPath, funcs)
+	s.templates = setupTemplates(funcs)
 	s.todoService = &inMemTodoService{}
 
 	return s
 }
 
-func setupTemplates(templatesDirPath string, funcs template.FuncMap) map[string]*template.Template {
+func setupTemplates(funcs template.FuncMap) map[string]*template.Template {
 	mustGlob := func(matches []string, err error) []string {
 		if err != nil {
 			panic(err)
@@ -216,9 +229,9 @@ func setupTemplates(templatesDirPath string, funcs template.FuncMap) map[string]
 		return matches
 	}
 
-	basePath := filepath.Join(templatesDirPath, "base.html")
-	partialPaths := mustGlob(filepath.Glob(filepath.Join(templatesDirPath, "partial", "*.html")))
-	pagePaths := mustGlob(filepath.Glob(filepath.Join(templatesDirPath, "page", "*.html")))
+	basePath := filepath.Join("template", "base.html")
+	partialPaths := mustGlob(fs.Glob(f, filepath.Join("template", "partial", "*.html")))
+	pagePaths := mustGlob(fs.Glob(f, filepath.Join("template", "page", "*.html")))
 
 	return preprocessTemplates(basePath, partialPaths, pagePaths, funcs)
 }
@@ -338,20 +351,11 @@ func (s *server) todosIndexHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, http.StatusText(500), 500)
 				return
 			}
-			if r.Header.Get("Hx-Request") == "true" {
-				todos, _, err := s.getFilteredTodoListItems(r, true)
-				if err != nil {
-					log.Printf("finding todos: %v", err)
-					http.Error(w, http.StatusText(500), 500)
-					return
-				}
-				data := todoListItem{
-					Request:             r,
-					Todo:                &todo,
-					UpdateNumber:        true,
-					FilteredTodosNumber: len(todos),
-				}
-				handlePage(s.templates, "todo-list-item.html", w, data)
+			if r.Header.Get("HX-Request") == "true" {
+				w.Header().Set("HX-Trigger", "newTodo")
+				handlePage(s.templates, "new-todo-form.html", w, map[string]interface{}{
+					"Request": r,
+				})
 			} else {
 				http.Redirect(w, r, "/todos/", 302)
 			}
@@ -384,7 +388,11 @@ func (s *server) todosIndexHandler(w http.ResponseWriter, r *http.Request) {
 		csrf.TemplateField(r),
 	}
 
-	handlePage(s.templates, "todos_index.html", w, data)
+	if r.Header.Get("HX-Request") == "true" {
+		handlePage(s.templates, "todo-list.html", w, data)
+	} else {
+		handlePage(s.templates, "todos_index.html", w, data)
+	}
 }
 
 func isTodoInList(todo *todo, list []todoListItem) bool {
@@ -422,7 +430,7 @@ func (s *server) todoHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
-		if r.Header.Get("Hx-Request") == "true" {
+		if r.Header.Get("HX-Request") == "true" {
 			todos, _, err := s.getFilteredTodoListItems(r, true)
 			if err != nil {
 				log.Printf("finding todos: %v", err)
@@ -563,7 +571,6 @@ func main() {
 	host := flag.String("host", "0.0.0.0", "hostname or IP address")
 	port := flag.Int("port", 8080, "port")
 	csrfAuthKey := flag.String("csrf", "", "CSRF auth key (32 bytes)")
-	templateDirPath := flag.String("template", "template", "path to template dir")
 	flag.Parse()
 
 	if *csrfAuthKey == "" {
@@ -575,7 +582,7 @@ func main() {
 		log.Fatalf("CSRF auth key (32 bytes) required, please provide -csrf option or set CSRF_AUTH_KEY env var")
 	}
 
-	s := newServer(*templateDirPath)
+	s := newServer()
 	examples := []string{"Do some stuff", "Make other things", "Call your mom"}
 	for _, ex := range examples {
 		todo := todo{Text: ex}

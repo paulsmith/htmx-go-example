@@ -57,5 +57,11 @@
 		</label>
 	</footer>
 	<script src="https://unpkg.com/htmx.org@1.5.0"></script>
+	<script>
+		document.addEventListener("htmx:configRequest", event => {
+			event.detail.headers["X-CSRF-Token"] = "{{ csrfToken .Request }}";
+		}, false);
+	</script>
+</script>
 </body>
 </html>

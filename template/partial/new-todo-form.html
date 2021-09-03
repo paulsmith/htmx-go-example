@@ -1,0 +1,34 @@
+<form 
+	hx-post="/todos/"
+	hx-swap="outerHTML"
+	aria-label="{{T .Request "new todo form"}}"
+	id="new-todo-form"
+	class="flex items-end gap-2 border-t mt-4 py-4">
+	<div class="flex-grow" aria-label="{{T .Request "new todo entry"}}">
+		<label
+			for="new-todo"
+			id="new-todo-label"
+			class="block text-sm font-medium text-gray-700">
+			{{T .Request "New todo"}}
+		</label>
+		<input
+			type="text"
+			id="new-todo"
+			name="new-todo"
+			tabindex="0"
+			aria-describedby="new-todo-label"
+			placeholder="{{T .Request "What to do …"}}"
+			required
+			autofocus
+			class="mt-1 px-4 py-4 focus:ring-indigo-500 focus:border-indigo-500 w-full shadow-sm border border-gray-300 rounded-md">
+	</div>
+	<input type="submit" value="{{T .Request "Add"}}"
+		class="px-4 py-4 border border-transparent shadow-sm font-medium rounded-md text-white bg-indigo-700">
+</form>
+<script>
+	document.addEventListener("htmx:afterRequest", event => {
+		if (event.target === document.querySelector("#new-todo-form")) {
+			document.querySelector("#new-todo").value = "";
+		}
+	}, false);
+</script>
